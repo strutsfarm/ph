@@ -6,6 +6,8 @@ import Atlas      # Atlas Scientific device
 
 PH_SENSOR_ADDR = 99
 PH_MINUS_PUMP_ADDR = 103
+PH_PLUS_PUMP_ADDR = 104
+HYSTERESIS = 50 # iterations where we only control in one direction 
 		
 def main():
 
@@ -21,7 +23,9 @@ def main():
 	ec_set_value = 0.0
 	ec_current = 0
 	ec_dose = 0
-	hysteresis = 0.1
+	controlling_down = 0
+	controlling_up = 0
+	ph_hysteresis = 0.1
 
 	# main loop
 	while True:
@@ -33,18 +37,37 @@ def main():
 		ph_current = float(response)
 		print("pH= ", ph_current)
 
-		if ph_current > ph_set_value + hysteresis :
+		# Controlling DOWN
+		if ph_current > ph_set_value + ph_hysteresis & controlling_up == 0 :
 			# inject pH-minus by running the pump
 			ph_minus_dose = 1
 			device.set_i2c_address(PH_MINUS_PUMP_ADDR)
 			device.write("D," + str(ph_minus_dose))
 			time.sleep(0.5)
 			response = device.read()
+			controlling_down = HYSTERESIS
+			#print(response)
+			#if response != "Command succeeded ":
+				#print(response)
+				#print("Error")
+
+		#Controlling UP
+		if ph_current < ph_set_value - ph_hysteresis & controlling_down == 0 :
+			# inject pH-plus by running the pump
+			ph_plus_dose = 1
+			device.set_i2c_address(PH_PLUS_PUMP_ADDR)
+			device.write("D," + str(ph_plus_dose))
+			time.sleep(0.5)
+			response = device.read()
+			controlling_up = HYSTERESIS
 			#print(response)
 			#if response != "Command succeeded ":
 				#print(response)
 				#print("Error")
 		
+		if controlling_down > 0: controlling_down -=1
+		if controlling_up > 0: controlling_up -=1
+
 		current_time = time.time()
 
 		# Write data to database....
