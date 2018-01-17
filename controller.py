@@ -1,13 +1,15 @@
 #!/usr/bin/python
 
 import time       # used for sleep delay and timestamps
+import sys
 import sqlite3
 import Atlas      # Atlas Scientific device
 
 PH_SENSOR_ADDR = 99
 PH_MINUS_PUMP_ADDR = 103
 PH_PLUS_PUMP_ADDR = 104
-HYSTERESIS = 50 # iterations where we only control in one direction 
+DAMPING = 50 # iterations where we only control in one direction
+MEASUREMENT_LOOP_TIME = 10.0 # of seconds between measurements  
 		
 def main():
 
@@ -29,12 +31,14 @@ def main():
 
 	# main loop
 	while True:
-		#print "loop starts.."
 		start_loop_time = time.time()
 		device.set_i2c_address(PH_SENSOR_ADDR)
 		response = device.query("R") # Get a reading from the sensor
 		# response is now a string of the pH value  if everything is ok
-		ph_current = float(response)
+		try:
+			ph_current = float(response)
+		except:
+			sys.exit()
 		print("pH= ", ph_current)
 
 		# Controlling DOWN
@@ -45,7 +49,7 @@ def main():
 			device.write("D," + str(ph_minus_dose))
 			time.sleep(0.5)
 			response = device.read()
-			controlling_down = HYSTERESIS
+			controlling_down = DAMPING
 			#print(response)
 			#if response != "Command succeeded ":
 				#print(response)
@@ -59,7 +63,7 @@ def main():
 			device.write("D," + str(ph_plus_dose))
 			time.sleep(0.5)
 			response = device.read()
-			controlling_up = HYSTERESIS
+			controlling_up = DAMPING
 			#print(response)
 			#if response != "Command succeeded ":
 				#print(response)
@@ -81,9 +85,9 @@ def main():
 			(ph_current, ph_set_value, ph_minus_dose, ph_plus_dose, ec_current, ec_set_value, ec_dose))
 		conn.commit()
 		loop_time = current_time - start_loop_time
-		# do a 10 sec loop
-		if loop_time < 10.0:
-			time.sleep(10.0 - loop_time)
+		# wait until we have MEASUREMENT_LOOP_TIME of seconds 
+		if loop_time < MEASUREMENT_LOOP_TIME:
+			time.sleep(MEASUREMENT_LOOP_TIME - loop_time)
 
 
 	conn.close()
