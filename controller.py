@@ -53,7 +53,7 @@ def main():
 		except:
 			sys.exit()
 
-		print "pH= ", ph_current, "temperature= ", temp_current
+		print("pH= ", ph_current, "temperature= ", temperature_current)
 		if i % CONTROL_LOOP_DIVISOR == 0:
 			# Controlling DOWN
 			if ph_current > ph_set_value + ph_hysteresis & controlling_up == 0:
@@ -92,7 +92,7 @@ def main():
 		c.execute('UPDATE temp SET createdAt = datetime("now") ,measured_pH = ?,target_pH = ?,PMP_pH_minus = ?,PMP_pH_plus = ?,measured_Ec = ?,target_Ec = ?,PMP_nutrition = ?, measured_temperature = ? WHERE rowid = 1', 
 			(ph_current, ph_set_value, ph_minus_dose, ph_plus_dose, ec_current, ec_set_value, ec_dose,temperature_current))
 		conn.commit()
-		
+
 		loop_time = current_time - start_loop_time
 		# wait until we have MEASUREMENT_LOOP_TIME of seconds 
 		if loop_time < MEASUREMENT_LOOP_TIME:
