@@ -91,8 +91,8 @@ class AtlasI2C:
 		self.set_i2c_address(prev_addr) # restore the address we were using
 		return i2c_devices
 
-		def shortTimeout(self):
-			time.sleep(short_timeout)
+	def shortTimeout(self):
+		time.sleep(short_timeout)
 		
 def main():
 	device = AtlasI2C() 	# creates the I2C port object, specify the address or bus if necessary
