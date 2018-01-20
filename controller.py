@@ -11,7 +11,7 @@ PH_MINUS_PUMP_ADDR = 103
 PH_PLUS_PUMP_ADDR = 104
 DAMPING = 50 # iterations where we only control in one direction
 MEASUREMENT_LOOP_TIME = 10.0 # of seconds between measurements  
-CONTROL_LOOP_DIVISOR = 3 
+CONTROL_LOOP_DIVISOR = 10 
 		
 def main():
 
@@ -31,6 +31,7 @@ def main():
 	controlling_down = 0
 	controlling_up = 0
 	ph_hysteresis = 0.1
+	control = ""
 
 	i = 1
 	
@@ -41,22 +42,23 @@ def main():
 		response = device.query("R") # Get a reading from the sensor
 		# response is now a string of the pH value  if everything is ok
 		try:
-			ph_current = float(response)
+			p = float(response)
 		except:
-			sys.exit()
-
+			print("No pH response...")
+		else:
+			ph_current = p
+		
 		device.set_i2c_address(TEMP_SENSOR_ADDR)
 		response = device.query("R") # Get a reading from the sensor
 		# response is now a string of the pH value  if everything is ok
 		try:
 			temperature_current = float(response)
 		except:
-			sys.exit()
+			temperature_current = -273.0
 
-		print("pH= ", ph_current, "temperature= ", temperature_current)
 		if i % CONTROL_LOOP_DIVISOR == 0:
 			# Controlling DOWN
-			if ph_current > ph_set_value + ph_hysteresis & controlling_up == 0:
+			if (ph_current > (ph_set_value + ph_hysteresis)) and controlling_up == 0:
 				# inject pH-minus by running the pump
 				ph_minus_dose = 1
 				device.set_i2c_address(PH_MINUS_PUMP_ADDR)
@@ -65,9 +67,10 @@ def main():
 				response = device.read()
 				controlling_down = DAMPING
 				i = 1
+				control = "DOWN"
 			
 			#Controlling UP
-			if ph_current < ph_set_value - ph_hysteresis & controlling_down == 0:
+			if (ph_current < (ph_set_value - ph_hysteresis)) and controlling_down == 0:
 				# inject pH-plus by running the pump
 				ph_plus_dose = 1
 				device.set_i2c_address(PH_PLUS_PUMP_ADDR)
@@ -76,8 +79,11 @@ def main():
 				response = device.read()
 				controlling_up = DAMPING
 				i = 1
+				control = "UP"
 
-			i += 1
+		print("pH= ", ph_current, "temperature= ", temperature_current,"  ", control)
+		control = ""
+		i += 1
 		if controlling_down > 0: controlling_down -=1
 		if controlling_up > 0: controlling_up -=1
 
@@ -88,7 +94,8 @@ def main():
 			(ph_current, ph_set_value, ph_minus_dose, ph_plus_dose))
 		c.execute('INSERT INTO Ec_data VALUES (datetime("now"), ?, ?, ?)', 
 			(ec_current, ec_set_value, ec_dose))
-		c.execute('INSERT INTO temperature_data VALUES (datetime("now"), ?)', (temperature_current))
+		c.execute('INSERT INTO temperature_data VALUES (datetime("now"), ?)', 
+		(temperature_current,))
 		c.execute('UPDATE temp SET createdAt = datetime("now") ,measured_pH = ?,target_pH = ?,PMP_pH_minus = ?,PMP_pH_plus = ?,measured_Ec = ?,target_Ec = ?,PMP_nutrition = ?, measured_temperature = ? WHERE rowid = 1', 
 			(ph_current, ph_set_value, ph_minus_dose, ph_plus_dose, ec_current, ec_set_value, ec_dose,temperature_current))
 		conn.commit()
