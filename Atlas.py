@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import io         # used to create file streams
+import io         # used to create file streams  
 import fcntl      # used to access I2C parameters like addresses
 
 import time       # used for sleep delay and timestamps
